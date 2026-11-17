@@ -84,6 +84,8 @@
           <button id="exportIcs" class="primary">Alle in Kalender exportieren</button>
           <button id="shareIcs" class="ghost hidden">Teilen…</button>
         </div>
+        <p id="embeddedNote" class="muted small hidden">In der Browser-Vorschau kann die App keine Dateien erzeugen.
+          Öffne die installierte Version (GitHub Pages), um deine Wecker in den Kalender zu exportieren.</p>
       </div>
     </section>
 
@@ -122,6 +124,9 @@
         <label>Lautstärke Wecker
           <input id="setVolume" type="range" min="0" max="1" step="0.05">
         </label>
+        <label class="row between">Bildschirm wach halten (Wecker-Modus)
+          <span class="switch"><input id="setAwake" type="checkbox"><span></span></span>
+        </label>
       </div>
 
       <div class="card">
@@ -134,6 +139,7 @@
             <input id="restoreInput" type="file" accept="application/json,.json" hidden>
           </label>
         </div>
+        <textarea id="backupText" class="hidden" rows="4" readonly aria-label="Backup-Daten"></textarea>
       </div>
       <p class="muted small center">PushUp Wecker · offline-fähig · Daten bleiben auf deinem Gerät</p>
     </section>

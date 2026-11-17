@@ -13,6 +13,7 @@ const TYPES = {
 };
 const CATCH_UP_MIN = 10; // verpasste Wecker bis zu 10 Min. nachholen (z. B. Tab war gedrosselt)
 
+const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 
@@ -153,7 +154,7 @@ function stopSound() { clearInterval(soundLoop); soundLoop = null; if (navigator
 
 /* ---------------- Benachrichtigungen ---------------- */
 let swReg = null;
-if ('serviceWorker' in navigator) {
+if ('serviceWorker' in navigator && !EMBEDDED) {
   navigator.serviceWorker.register('sw.js').then((r) => { swReg = r; }).catch((e) => console.warn('SW', e));
   navigator.serviceWorker.addEventListener('message', (e) => {
     const { action, alarmId } = e.data || {};
@@ -381,6 +382,7 @@ function openEditor(alarm) {
   form.sound.value = a.sound;
   $$('#dayPicker input').forEach((i) => { i.checked = a.days.includes(Number(i.value)); });
   $('#deleteAlarm').classList.toggle('hidden', !alarm);
+  const del = $('#deleteAlarm'); if (del.dataset.armed) { delete del.dataset.armed; del.textContent = del.dataset.orig; }
   togglePushFields();
   $('#editDialog').showModal();
 }
@@ -393,10 +395,17 @@ form.type.addEventListener('change', () => {
 });
 $('#previewSound').onclick = () => { ctx(); (SOUNDS[form.sound.value] || SOUNDS.alarm)(); };
 $('#addAlarm').onclick = () => openEditor(null);
-$('#deleteAlarm').onclick = () => {
-  if (editing && confirm(`„${editing.name}“ löschen?`)) {
+function armed(btn, label) {
+  // Bestätigung ohne confirm(): erst beim zweiten Tippen ausführen
+  if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = btn.dataset.orig; return true; }
+  btn.dataset.orig = btn.textContent; btn.dataset.armed = '1'; btn.textContent = label;
+  setTimeout(() => { if (btn.dataset.armed) { delete btn.dataset.armed; btn.textContent = btn.dataset.orig; } }, 3000);
+  return false;
+}
+$('#deleteAlarm').onclick = (e) => {
+  if (editing && armed(e.currentTarget, 'Wirklich löschen?')) {
     state.alarms = state.alarms.filter((a) => a !== editing);
-    save(); $('#editDialog').close('deleted'); renderAll();
+    save(); $('#editDialog').close('deleted'); renderAll(); toast('Wecker gelöscht');
   }
 };
 form.addEventListener('submit', (e) => {
@@ -495,7 +504,11 @@ async function exportIcs(alarms) {
   toast('Kalender-Datei gespeichert – öffnen und „Alle hinzufügen“', 4000);
 }
 $('#exportIcs').onclick = () => exportIcs();
-if (navigator.canShare) {
+if (EMBEDDED) {
+  // In der eingebetteten Vorschau sind Downloads gesperrt
+  $('#exportIcs').classList.add('hidden');
+  $('#embeddedNote').classList.remove('hidden');
+} else if (navigator.canShare) {
   $('#shareIcs').classList.remove('hidden');
   $('#shareIcs').onclick = async () => {
     const file = icsFile(state.alarms.filter((a) => a.enabled));
@@ -531,6 +544,7 @@ function renderSettings() {
   $('#setDose').value = s.dose;
   $('#setSnooze').value = s.snooze;
   $('#setVolume').value = s.volume;
+  $('#setAwake').checked = !!s.keepAwake;
   let txt;
   if (!notifSupported()) {
     txt = isIOS() && !isStandalone()
@@ -575,7 +589,20 @@ $('#testAlarm').onclick = () => {
   setTimeout(() => ring(test), 5000);
 };
 
-$('#backupBtn').onclick = () => {
+$('#backupBtn').onclick = async () => {
+  if (EMBEDDED) {
+    const json = JSON.stringify(state, null, 2);
+    const dl = window.claude && window.claude.use ? await window.claude.use('downloads').catch(() => null) : null;
+    if (dl) {
+      try { await dl.save({ filename: `pushup-wecker-backup-${dateKey()}.json`, data: json }); toast('Backup gespeichert ✔'); return; }
+      catch (e) { if (e && e.code === 'declined') return; }
+    }
+    const ta = $('#backupText');
+    ta.value = JSON.stringify(state);
+    ta.classList.remove('hidden'); ta.select();
+    navigator.clipboard?.writeText(ta.value).then(() => toast('Backup kopiert ✔'), () => toast('Text markiert – kopieren und als .json speichern'));
+    return;
+  }
   const file = new File([JSON.stringify(state, null, 2)], `pushup-wecker-backup-${dateKey()}.json`, { type: 'application/json' });
   download(file);
 };
@@ -585,12 +612,28 @@ $('#restoreInput').onchange = async (e) => {
   try {
     const data = JSON.parse(await f.text());
     if (!Array.isArray(data.alarms) || typeof data.log !== 'object') throw new Error('Ungültig');
-    if (!confirm('Backup laden? Aktuelle Daten werden ersetzt.')) return;
     state = { ...defaultState(), ...data, settings: { ...defaultState().settings, ...data.settings } };
     save(); renderAll(); toast('Backup geladen ✔');
   } catch (err) { toast('Backup-Datei ungültig'); }
   e.target.value = '';
 };
+
+/* ---------------- Bildschirm wach halten ---------------- */
+let wakeLock = null;
+async function applyWakeLock() {
+  const want = !!state.settings.keepAwake && !document.hidden;
+  try {
+    if (want && !wakeLock && navigator.wakeLock) {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => { wakeLock = null; });
+    } else if (!want && wakeLock) { await wakeLock.release(); wakeLock = null; }
+  } catch (e) { wakeLock = null; }
+}
+$('#setAwake').addEventListener('change', (e) => {
+  state.settings.keepAwake = e.target.checked; save(); ctx(); applyWakeLock();
+  if (e.target.checked && !navigator.wakeLock) toast('Dieses Gerät unterstützt das leider nicht');
+});
+document.addEventListener('visibilitychange', applyWakeLock);
 
 /* ---------------- Installation ---------------- */
 function isIOS() { return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
@@ -603,7 +646,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
   h.classList.remove('hidden');
   $('#installBtn').onclick = async () => { installEvent.prompt(); await installEvent.userChoice; h.classList.add('hidden'); };
 });
-if (isIOS() && !isStandalone()) {
+if (isIOS() && !isStandalone() && !EMBEDDED) {
   const h = $('#installHint');
   h.innerHTML = '<b>📲 Auf den Home-Bildschirm</b><p class="muted small">Tippe unten in Safari auf <b>Teilen</b> (□↑) → <b>Zum Home-Bildschirm</b>. Erst dann kann die App dir Mitteilungen schicken.</p>';
   h.classList.remove('hidden');
@@ -643,6 +686,7 @@ if (params.get('alarm')) {
 save();
 renderAll();
 tickClock();
+applyWakeLock();
 checkAlarms();
 setInterval(() => { tickClock(); checkAlarms(); }, 5000);
 setInterval(renderToday, 60000);
