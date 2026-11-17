@@ -1,6 +1,6 @@
-# 💪 Gym Wecker
+# Gym Wecker
 
-Web-App (PWA) für iPhone, iPad und PC: eigene Pushup-Wecker, Trainings-Erinnerungen und täglich Kreatin.
+Web-App (PWA) für iPhone, iPad und PC: Trainingsplan mit Wochen-Serie, Gym-Fortschritt, Trainings- und Kreatin-Erinnerungen.
 
 ## Online stellen (einmalig, ca. 1 Minute)
 1. Diesen Branch in `main` mergen.
