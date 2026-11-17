@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>PushUp Wecker</title>
+  <meta name="description" content="Eigene Pushup-Wecker, Trainings- und Kreatin-Erinnerungen">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PushUp">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png" type="image/png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <h1>💪 PushUp Wecker</h1>
+    <div id="clock" class="clock">--:--</div>
+  </header>
+
+  <main>
+    <!-- HEUTE -->
+    <section id="tab-today" class="tab active">
+      <div class="card next">
+        <div class="label">Nächster Wecker</div>
+        <div id="nextAlarm" class="big">–</div>
+      </div>
+
+      <div class="card">
+        <div class="row between">
+          <h2>Pushups heute</h2>
+          <span id="pushupGoalLabel" class="muted"></span>
+        </div>
+        <div class="progress"><div id="pushupBar"></div></div>
+        <div id="pushupCount" class="huge">0</div>
+        <div class="btns">
+          <button class="chip" data-add="1">+1</button>
+          <button class="chip" data-add="5">+5</button>
+          <button class="chip" data-add="10">+10</button>
+          <button class="chip" data-add="20">+20</button>
+          <button class="chip ghost" data-add="-1">−1</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row between">
+          <h2>Kreatin</h2>
+          <span id="creatineStreak" class="muted"></span>
+        </div>
+        <button id="creatineBtn" class="primary wide">Kreatin genommen ✔</button>
+      </div>
+
+      <div class="card">
+        <div class="row between">
+          <h2>Training</h2>
+          <span id="trainingStreak" class="muted"></span>
+        </div>
+        <button id="trainingBtn" class="primary wide">Training erledigt ✔</button>
+      </div>
+
+      <div id="installHint" class="card hint hidden"></div>
+    </section>
+
+    <!-- WECKER -->
+    <section id="tab-alarms" class="tab">
+      <div class="row between">
+        <h2>Meine Wecker</h2>
+        <button id="addAlarm" class="primary">+ Neu</button>
+      </div>
+      <ul id="alarmList" class="list"></ul>
+
+      <div class="card">
+        <h2>📅 Wecker auch bei geschlossener App</h2>
+        <p class="muted small">
+          iOS lässt Web-Apps im Hintergrund nicht laufen. Exportiere deine Wecker in den
+          Kalender (iPhone / iPad / Outlook / Windows-Kalender), dann klingeln sie
+          zuverlässig, auch wenn die App zu ist. Nach jeder Änderung neu exportieren
+          und die alten Termine löschen.
+        </p>
+        <div class="btns">
+          <button id="exportIcs" class="primary">Alle in Kalender exportieren</button>
+          <button id="shareIcs" class="ghost hidden">Teilen…</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VERLAUF -->
+    <section id="tab-history" class="tab">
+      <h2>Letzte 14 Tage</h2>
+      <div class="stats" id="stats"></div>
+      <table class="history">
+        <thead><tr><th>Tag</th><th>Pushups</th><th>Kreatin</th><th>Training</th></tr></thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </section>
+
+    <!-- EINSTELLUNGEN -->
+    <section id="tab-settings" class="tab">
+      <div class="card">
+        <h2>Benachrichtigungen</h2>
+        <p id="notifStatus" class="muted small"></p>
+        <div class="btns">
+          <button id="askNotif" class="primary">Erlauben</button>
+          <button id="testAlarm" class="ghost">Test-Wecker (in 5 s)</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Ziele</h2>
+        <label>Tägliches Pushup-Ziel
+          <input id="setGoal" type="number" min="1" max="2000" inputmode="numeric">
+        </label>
+        <label>Kreatin-Dosis (g)
+          <input id="setDose" type="number" min="1" max="30" step="0.5" inputmode="decimal">
+        </label>
+        <label>Snooze-Dauer (Minuten)
+          <input id="setSnooze" type="number" min="1" max="60" inputmode="numeric">
+        </label>
+        <label>Lautstärke Wecker
+          <input id="setVolume" type="range" min="0" max="1" step="0.05">
+        </label>
+      </div>
+
+      <div class="card">
+        <h2>Daten zwischen Geräten übertragen</h2>
+        <p class="muted small">Jedes Gerät speichert lokal. Mit Backup kannst du Wecker &amp; Verlauf
+          von PC aufs iPhone (oder umgekehrt) übertragen.</p>
+        <div class="btns">
+          <button id="backupBtn" class="ghost">Backup speichern</button>
+          <label class="ghost button">Backup laden
+            <input id="restoreInput" type="file" accept="application/json,.json" hidden>
+          </label>
+        </div>
+      </div>
+      <p class="muted small center">PushUp Wecker · offline-fähig · Daten bleiben auf deinem Gerät</p>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-tab="today" class="active"><span>🏠</span>Heute</button>
+    <button data-tab="alarms"><span>⏰</span>Wecker</button>
+    <button data-tab="history"><span>📈</span>Verlauf</button>
+    <button data-tab="settings"><span>⚙️</span>Optionen</button>
+  </nav>
+
+  <!-- Wecker bearbeiten -->
+  <dialog id="editDialog">
+    <form id="editForm" method="dialog">
+      <h2 id="editTitle">Wecker</h2>
+      <label>Typ
+        <select name="type">
+          <option value="pushups">💪 Pushups</option>
+          <option value="training">🏋️ Training</option>
+          <option value="creatine">💊 Kreatin</option>
+          <option value="custom">🔔 Eigener</option>
+        </select>
+      </label>
+      <label>Name <input name="name" required maxlength="40"></label>
+      <label>Uhrzeit <input name="time" type="time" required></label>
+      <fieldset class="days">
+        <legend>Tage</legend>
+        <div id="dayPicker"></div>
+      </fieldset>
+      <label class="pushOnly">Anzahl Pushups <input name="reps" type="number" min="1" max="500" inputmode="numeric"></label>
+      <label>Nachricht <input name="message" maxlength="120" placeholder="z. B. Runter auf den Boden!"></label>
+      <label>Ton
+        <select name="sound">
+          <option value="alarm">Wecker (laut)</option>
+          <option value="beep">Piepen</option>
+          <option value="chime">Gong</option>
+          <option value="none">Stumm</option>
+        </select>
+      </label>
+      <div class="btns between">
+        <button type="button" id="deleteAlarm" class="danger">Löschen</button>
+        <span class="row">
+          <button type="button" id="previewSound" class="ghost">▶︎</button>
+          <button value="cancel" formnovalidate class="ghost">Abbrechen</button>
+          <button value="save" class="primary">Speichern</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Wecker klingelt -->
+  <div id="ringing" class="ringing hidden" role="alertdialog" aria-live="assertive">
+    <div class="ring-icon" id="ringIcon">⏰</div>
+    <div class="ring-title" id="ringTitle">Wecker</div>
+    <div class="ring-msg" id="ringMsg"></div>
+    <div class="btns center">
+      <button id="ringDone" class="primary xl">Erledigt ✔</button>
+      <button id="ringSnooze" class="ghost xl">Snooze</button>
+    </div>
+    <button id="ringDismiss" class="link">Nur ausschalten</button>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
