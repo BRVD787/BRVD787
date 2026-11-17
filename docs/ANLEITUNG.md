@@ -1,4 +1,4 @@
-# 💪 PushUp Wecker
+# 💪 Gym Wecker
 
 Web-App (PWA) für iPhone, iPad und PC: eigene Pushup-Wecker, Trainings-Erinnerungen und täglich Kreatin.
 
@@ -11,14 +11,11 @@ Web-App (PWA) für iPhone, iPad und PC: eigene Pushup-Wecker, Trainings-Erinneru
 - **iPhone / iPad:** Link in **Safari** öffnen → *Teilen* (□↑) → **Zum Home-Bildschirm**. App vom Home-Bildschirm starten → *Optionen* → **Mitteilungen erlauben**.
 - **PC (Windows/Mac):** Link in **Chrome oder Edge** öffnen → Installieren-Symbol in der Adressleiste (oder Button „Installieren“ in der App). Mitteilungen erlauben.
 
-## So funktionieren die Wecker
-- **App offen / im Hintergrund:** Vollbild-Alarm mit Ton, Vibration und Mitteilung. Buttons *Erledigt* (bucht Pushups bzw. hakt Kreatin/Training ab), *Snooze*, *Ausschalten*.
-- **App geschlossen:** iOS lässt Web-Apps im Hintergrund nicht laufen. Deshalb: Tab *Wecker* → **„Alle in Kalender exportieren“** → in Kalender übernehmen. Dann klingeln die Erinnerungen über den iOS-/Outlook-Kalender auch bei geschlossener App. Mit iCloud-Kalender landen sie automatisch auf allen Geräten.
-- Kreatin- und Trainings-Wecker fallen aus, wenn du es heute schon abgehakt hast.
-
-## Funktionen
-- Beliebig viele Wecker: Typ (Pushups / Training / Kreatin / Eigener), Uhrzeit, Wochentage, Anzahl Pushups, eigene Nachricht, Ton
-- Tagesziel für Pushups mit Fortschrittsbalken, Schnell-Zähler (+1/+5/+10/+20)
-- Kreatin- und Training-Streaks 🔥, Verlauf der letzten 14 Tage
-- Offline-fähig, alle Daten bleiben lokal auf dem Gerät
-- Backup speichern/laden, um Daten zwischen PC und iPhone zu übertragen
+## So funktioniert die App
+- **Training:** Lege fest, wie oft pro Woche du trainierst und an welchen Tagen. Die Serie zählt Wochen, in denen du dein Wochenziel erreicht hast. Ruhetage unterbrechen sie nicht.
+- **Training eintragen:** Übungen mit Sätzen, Wiederholungen und Gewicht, optional Körpergewicht und Notiz. Die App zeigt dir, was du beim letzten Mal geschafft hast.
+- **Fortschritt:** Pro Übung eine Kurve mit aktuellem Wert, Bestwert und Veränderung. Übungen ohne Gewicht (z. B. Klimmzüge) laufen über die Wiederholungen.
+- **Kreatin:** Täglich abhaken, mit Serie in Tagen.
+- **Wecker:** Vollbild-Alarm mit Ton, solange die App offen ist. Trainings-Wecker folgen deinen Trainingstagen und fallen aus, wenn du heute schon trainiert hast.
+- **App geschlossen:** Tab *Wecker* → „In Kalender exportieren“. Dann erinnert dich der Kalender auch, wenn die App zu ist.
+- Offline-fähig, alle Daten bleiben auf dem Gerät. Mit Backup überträgst du sie zwischen PC und iPhone.
