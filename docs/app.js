@@ -34,7 +34,7 @@ function defaultState() {
     settings: { dose: 5, snooze: 5, volume: 0.8, trainPerWeek: 3, trainDays: [1, 3, 5] },
     alarms: [
       { id: uid(), type: 'creatine', name: 'Kreatin nehmen', time: '08:00', days: [0, 1, 2, 3, 4, 5, 6],
-        message: '5 g Kreatin mit einem Glas Wasser.', sound: 'chime', enabled: true },
+        message: '', sound: 'chime', enabled: true },
       { id: uid(), type: 'training', name: 'Training', time: '18:00', days: [1, 3, 5],
         message: 'Zeit fürs Training – Tasche packen und los!', sound: 'alarm', enabled: true },
     ],
@@ -96,14 +96,18 @@ const trainedOn = (k) => !!dayEntry(k).training;
 function nextOccurrence(alarm, from = new Date()) {
   if (!alarm.days.length) return null;
   const [h, m] = alarm.time.split(':').map(Number);
+  let base = from;
+  if (alarm.from && parseKey(alarm.from) > base) base = new Date(parseKey(alarm.from).getTime() - 1);
   for (let i = 0; i < 8; i++) {
-    const d = new Date(from);
+    const d = new Date(base);
     d.setDate(d.getDate() + i);
     d.setHours(h, m, 0, 0);
-    if (d > from && alarm.days.includes(d.getDay())) return d;
+    if (alarm.until && dateKey(d) > alarm.until) return null;
+    if (d > base && alarm.days.includes(d.getDay())) return d;
   }
   return null;
 }
+const activeOn = (alarm, k) => (!alarm.from || k >= alarm.from) && (!alarm.until || k <= alarm.until);
 
 function dailyStreak(field) {
   let n = 0;
@@ -111,6 +115,60 @@ function dailyStreak(field) {
   if (!dayEntry(dateKey(d))[field]) d.setDate(d.getDate() - 1); // heute zählt erst, wenn erledigt
   while (dayEntry(dateKey(d))[field]) { n++; d.setDate(d.getDate() - 1); }
   return n;
+}
+
+/* ---------- Kreatin: Rechner & Ladephase ---------- */
+const LOAD_TIMES = ['08:00', '12:00', '16:00', '20:00'];
+const round05 = (x) => Math.round(x * 2) / 2;
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+function addDays(k, n) { const d = parseKey(k); d.setDate(d.getDate() + n); return dateKey(d); }
+function fmtG(v) { return (Number.isInteger(v) ? String(v) : v.toFixed(1).replace('.', ',')) + ' g'; }
+function niceDate(k) { const d = parseKey(k); return `${DAY_LABELS[d.getDay()]}, ${d.getDate()}.${d.getMonth() + 1}.`; }
+
+// Richtwerte (ISSN): Ladephase 0,3 g/kg/Tag auf 4 Portionen, Erhaltung 0,03 g/kg/Tag, mind. 3 g
+function creatinePlan(kg, withLoading, days, start) {
+  const maint = clamp(round05(0.03 * kg), 3, 10);
+  if (!withLoading) {
+    return { kg, maint, loading: null, monthTotal: maint * 30 };
+  }
+  const perDose = round05(clamp(0.3 * kg, 15, 30) / LOAD_TIMES.length);
+  const daily = perDose * LOAD_TIMES.length;
+  const end = addDays(start, days - 1);
+  const after = addDays(start, days);
+  return { kg, maint, loading: { start, end, after, days, perDose, daily, doses: LOAD_TIMES.length },
+    monthTotal: daily * days + maint * Math.max(0, 30 - days) };
+}
+
+function loadingInfo(k = dateKey()) {
+  const L = state.settings.creatine && state.settings.creatine.loading;
+  if (!L || k < L.start || k > L.end) return null;
+  return { ...L, dayIndex: Math.round((parseKey(k) - parseKey(L.start)) / 86400000) + 1 };
+}
+function upcomingLoading() {
+  const L = state.settings.creatine && state.settings.creatine.loading;
+  return L && dateKey() < L.start ? L : null;
+}
+// Abgelaufene Ladephase aufräumen
+function cleanupLoading() {
+  const c = state.settings.creatine;
+  if (c && c.loading && dateKey() > c.loading.end) {
+    c.loading = null;
+    state.alarms = state.alarms.filter((a) => !a.loading);
+    save();
+  }
+}
+
+function takeCreatine(toggle) {
+  const t = today();
+  const L = loadingInfo();
+  if (L) {
+    let n = t.creatineDoses || 0;
+    n = toggle && n >= L.doses ? 0 : Math.min(L.doses, n + 1);
+    t.creatineDoses = n;
+    t.creatine = n >= L.doses;
+  } else {
+    t.creatine = toggle ? !t.creatine : true;
+  }
 }
 
 /* ---------- Trainings-Woche & Serie ---------- */
@@ -243,7 +301,14 @@ async function notify(alarm) {
 
 function alarmMessage(alarm) {
   if (alarm.message) return alarm.message;
-  if (alarm.type === 'creatine') return `${state.settings.dose} g Kreatin nehmen.`;
+  if (alarm.type === 'creatine') {
+    const L = loadingInfo();
+    if (alarm.loading && L) return `${fmtG(L.perDose)} Kreatin – Einnahme ${alarm.dose} von ${L.doses} (Ladephase Tag ${L.dayIndex} von ${L.days}).`;
+    if (alarm.loading && state.settings.creatine && state.settings.creatine.loading) {
+      return `${fmtG(state.settings.creatine.loading.perDose)} Kreatin – Einnahme ${alarm.dose} der Ladephase.`;
+    }
+    return `${fmtG(state.settings.dose)} Kreatin nehmen.`;
+  }
   if (alarm.type === 'training') return 'Zeit fürs Training!';
   return 'Erinnerung';
 }
@@ -253,7 +318,14 @@ let ringingAlarm = null;
 
 function shouldSkip(alarm) {
   const t = today();
-  return (alarm.type === 'creatine' && t.creatine) || (alarm.type === 'training' && t.training);
+  if (alarm.type === 'creatine') {
+    const L = loadingInfo();
+    if (L && !alarm.loading) return true;              // in der Ladephase übernehmen die Ladephase-Wecker
+    if (!L && alarm.loading) return true;
+    if (L && alarm.loading) return (t.creatineDoses || 0) >= alarm.dose;
+    return t.creatine;
+  }
+  return alarm.type === 'training' && t.training;
 }
 
 function checkAlarms() {
@@ -262,7 +334,7 @@ function checkAlarms() {
   let changed = false;
 
   for (const alarm of state.alarms) {
-    if (!alarm.enabled || !alarm.days.includes(now.getDay())) continue;
+    if (!alarm.enabled || !alarm.days.includes(now.getDay()) || !activeOn(alarm, dk)) continue;
     const [h, m] = alarm.time.split(':').map(Number);
     const due = new Date(now); due.setHours(h, m, 0, 0);
     const diffMin = (now - due) / 60000;
@@ -283,6 +355,7 @@ function checkAlarms() {
     }
   }
   if (changed) save();
+  cleanupLoading();
 }
 
 function ring(alarm, { silentNotify = false } = {}) {
@@ -312,7 +385,7 @@ function closeRing() {
 
 function completeAlarm(alarm) {
   const t = today();
-  if (alarm.type === 'creatine') t.creatine = true;
+  if (alarm.type === 'creatine') takeCreatine(false);
   if (alarm.type === 'training') t.training = true;
   save();
   closeRing();
@@ -355,11 +428,19 @@ function weekText() {
 /* ---------------- Ansicht: Heute ---------------- */
 function renderToday() {
   const t = today();
-  const dose = state.settings.dose;
+  const dose = fmtG(state.settings.dose);
+  const L = loadingInfo();
   $('#creatineBtn').classList.toggle('done', t.creatine);
-  $('#creatineState').textContent = t.creatine ? `${dose} g genommen` : `${dose} g noch offen`;
   const cs = dailyStreak('creatine');
-  $('#creatineStreak').textContent = cs ? `${cs} ${cs === 1 ? 'Tag' : 'Tage'} in Folge` : '';
+  if (L) {
+    const n = t.creatineDoses || 0;
+    $('#creatineState').textContent = `${n} von ${L.doses} · je ${fmtG(L.perDose)}`;
+    $('#creatineStreak').textContent = `Ladephase Tag ${L.dayIndex}/${L.days}`;
+  } else {
+    $('#creatineState').textContent = t.creatine ? `${dose} genommen` : `${dose} noch offen`;
+    $('#creatineStreak').textContent = cs ? `${cs} ${cs === 1 ? 'Tag' : 'Tage'} in Folge` : '';
+  }
+  renderCreatineCard();
 
   const planned = state.settings.trainDays.includes(new Date().getDay());
   $('#trainingBtn').classList.toggle('done', t.training);
@@ -388,7 +469,130 @@ function renderToday() {
   }
 }
 
-$('#creatineBtn').onclick = () => { const t = today(); t.creatine = !t.creatine; save(); renderToday(); };
+$('#creatineBtn').onclick = () => { takeCreatine(true); save(); renderToday(); };
+
+function renderCreatineCard() {
+  const el = $('#creatineCard');
+  const c = state.settings.creatine;
+  const L = loadingInfo();
+  const U = upcomingLoading();
+  if (L) {
+    const n = today().creatineDoses || 0;
+    const segs = Array.from({ length: L.days }, (_, i) =>
+      `<i class="${i + 1 < L.dayIndex ? 'past' : i + 1 === L.dayIndex ? 'now' : ''}"></i>`).join('');
+    const doses = LOAD_TIMES.map((tm, i) =>
+      `<span class="dose${i < n ? ' on' : ''}"><b>${tm}</b><small>${fmtG(L.perDose)}</small></span>`).join('');
+    el.innerHTML = `<div class="glass card load-card">
+      <div class="card-row"><span class="section-label flat">Kreatin-Ladephase</span><span class="pill">Tag ${L.dayIndex} von ${L.days}</span></div>
+      <div class="load-segs">${segs}</div>
+      <div class="doses">${doses}</div>
+      <p class="muted tiny">Heute ${fmtG(L.daily)} in ${L.doses} Portionen. Ab ${niceDate(L.after)}: ${fmtG(c.maint)} täglich. Tippe auf die Kreatin-Kachel, wenn du eine Portion genommen hast.</p>
+    </div>`;
+  } else if (U) {
+    el.innerHTML = `<div class="glass card load-card">
+      <div class="card-row"><span class="section-label flat">Kreatin-Ladephase</span><span class="pill">ab ${niceDate(U.start)}</span></div>
+      <p class="muted small">${U.days} Tage lang ${U.doses} × ${fmtG(U.perDose)} täglich, danach ${fmtG(c.maint)} pro Tag.</p>
+    </div>`;
+  } else if (!c) {
+    el.innerHTML = `<button type="button" class="glass card calc-hint" id="calcHintBtn">
+      <span class="squircle orange"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7h7M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"/></svg></span>
+      <span class="cell-text"><b>Wie viel Kreatin brauchst du?</b><small>Dosis und Ladephase für dein Körpergewicht berechnen</small></span>
+      <span class="chev">${SVG('<path d="m9 6 6 6-6 6"/>')}</span>
+    </button>`;
+    $('#calcHintBtn').onclick = openCalc;
+  } else {
+    el.innerHTML = '';
+  }
+}
+
+/* ---------- Kreatin-Rechner (Sheet) ---------- */
+const cForm = $('#calcForm');
+function lastBodyweight() {
+  const w = [...state.workouts].filter((x) => Number(x.bodyweight) > 0).sort((a, b) => b.date.localeCompare(a.date))[0];
+  return w ? Number(w.bodyweight) : 0;
+}
+function readCalc() {
+  const kg = Number(cForm.kg.value);
+  const withLoading = cForm.load.value === 'yes';
+  const days = Number(cForm.days.value) || 5;
+  const start = cForm.start.value || dateKey();
+  if (!(kg >= 35 && kg <= 250)) return null;
+  return creatinePlan(kg, withLoading, days, start);
+}
+function renderCalc() {
+  $$('.loadOnly').forEach((e) => e.classList.toggle('hidden', cForm.load.value !== 'yes'));
+  const r = readCalc();
+  const el = $('#calcResult');
+  if (!r) { el.innerHTML = '<div class="glass card"><p class="muted small">Gib dein Körpergewicht ein (35–250 kg).</p></div>'; return; }
+  if (!r.loading) {
+    el.innerHTML = `<div class="calc-stats">
+        <div class="glass calc-stat wide"><small>Täglich</small><b>${fmtG(r.maint)}</b><span>ab heute, jeden Tag</span></div>
+      </div>
+      <div class="glass card">
+        <p class="small">Ohne Ladephase sind deine Kreatinspeicher nach etwa <b>3–4 Wochen</b> voll. Die Wirkung ist danach dieselbe wie mit Ladephase.</p>
+        <p class="muted tiny">Bedarf für 30 Tage: ${fmtG(r.monthTotal)}</p>
+      </div>`;
+    return;
+  }
+  const L = r.loading;
+  const rows = Array.from({ length: L.days }, (_, i) => {
+    const k = addDays(L.start, i);
+    return `<div class="plan-row"><span class="plan-day">Tag ${i + 1}<small>${niceDate(k)}</small></span>
+      <span class="plan-doses">${LOAD_TIMES.map((tm) => `<span>${tm}<b>${fmtG(L.perDose)}</b></span>`).join('')}</span></div>`;
+  }).join('');
+  el.innerHTML = `<div class="calc-stats">
+      <div class="glass calc-stat"><small>Ladephase</small><b>${fmtG(L.daily)}</b><span>pro Tag · ${L.doses} × ${fmtG(L.perDose)}</span></div>
+      <div class="glass calc-stat"><small>Danach</small><b>${fmtG(r.maint)}</b><span>pro Tag ab ${niceDate(L.after)}</span></div>
+    </div>
+    <div class="glass group plan">
+      ${rows}
+      <div class="plan-row after"><span class="plan-day">Ab Tag ${L.days + 1}<small>${niceDate(L.after)}</small></span>
+        <span class="plan-doses"><span>täglich<b>${fmtG(r.maint)}</b></span></span></div>
+    </div>
+    <div class="glass card">
+      <p class="small">Mit Ladephase sind deine Speicher nach etwa <b>${L.days} Tagen</b> voll statt nach 3–4 Wochen. Verteile die Portionen über den Tag, z. B. zu den Mahlzeiten.</p>
+      <p class="muted tiny">Bedarf für die ersten 30 Tage: ${fmtG(r.monthTotal)} (Ladephase ${fmtG(L.daily * L.days)}).</p>
+    </div>`;
+}
+function openCalc() {
+  const c = state.settings.creatine;
+  cForm.kg.value = (c && c.kg) || lastBodyweight() || '';
+  cForm.start.value = dateKey();
+  cForm.load.value = 'yes';
+  cForm.days.value = '5';
+  cForm.alarms.checked = true;
+  $('#endLoading').classList.toggle('hidden', !(c && c.loading));
+  renderCalc();
+  $('#calcDialog').showModal();
+}
+$('#openCalc').onclick = openCalc;
+cForm.addEventListener('input', renderCalc);
+cForm.addEventListener('change', renderCalc);
+cForm.addEventListener('submit', (e) => {
+  if (e.submitter && e.submitter.value === 'cancel') return;
+  const r = readCalc();
+  if (!r) { e.preventDefault(); toast('Bitte Körpergewicht eingeben'); return; }
+  state.settings.creatine = { kg: r.kg, maint: r.maint, loading: r.loading };
+  state.settings.dose = r.maint;
+  // feste Dosis-Texte in Kreatin-Weckern durch die berechnete Dosis ersetzen
+  state.alarms.forEach((a) => { if (a.type === 'creatine' && /^\s*\d+([.,]\d+)?\s*g\b/.test(a.message || '')) a.message = ''; });
+  state.alarms = state.alarms.filter((a) => !a.loading);
+  if (r.loading && cForm.alarms.checked) {
+    LOAD_TIMES.forEach((tm, i) => state.alarms.push({
+      id: uid(), type: 'creatine', name: `Kreatin ${i + 1}/${LOAD_TIMES.length} (Ladephase)`, time: tm,
+      days: [0, 1, 2, 3, 4, 5, 6], message: '', sound: 'chime', enabled: true,
+      loading: true, dose: i + 1, from: r.loading.start, until: r.loading.end,
+    }));
+  }
+  save(); renderAll();
+  toast(r.loading ? `Ladephase geplant: ${r.loading.doses} × ${fmtG(r.loading.perDose)} für ${r.loading.days} Tage` : `Kreatin: ${fmtG(r.maint)} täglich`);
+});
+$('#endLoading').onclick = (e) => {
+  if (!armed(e.currentTarget, 'Wirklich beenden?')) return;
+  if (state.settings.creatine) state.settings.creatine.loading = null;
+  state.alarms = state.alarms.filter((a) => !a.loading);
+  save(); $('#calcDialog').close('ended'); renderAll(); toast('Ladephase beendet');
+};
 $('#trainingBtn').onclick = () => openWorkout(dateKey());
 
 /* ---------------- Ansicht: Training ---------------- */
@@ -693,7 +897,8 @@ function renderAlarms() {
       <button class="icsBtn" title="Diesen Wecker in den Kalender" aria-label="In Kalender">${SVG('<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>')}</button>
       <label class="switch"><input type="checkbox"><span></span></label>`;
     li.querySelector('.time').textContent = a.time;
-    li.querySelector('.meta').textContent = `${a.name} · ${daysText(a.days)}`;
+    const paused = a.type === 'creatine' && !a.loading && loadingInfo() ? ' · pausiert (Ladephase)' : '';
+    li.querySelector('.meta').textContent = `${a.name} · ${a.until ? `${niceDate(a.from || dateKey())} bis ${niceDate(a.until)}` : daysText(a.days)}${paused}`;
     li.querySelector('.info').onclick = () => openEditor(a);
     li.querySelector('.icsBtn').onclick = () => exportIcs([a]);
     const sw = li.querySelector('input');
@@ -802,7 +1007,7 @@ function buildIcs(alarms) {
       `DTSTAMP:${stamp}`,
       `DTSTART:${icsDate(start)}`,
       `DTEND:${icsDate(end)}`,
-      `RRULE:FREQ=WEEKLY;BYDAY=${a.days.map((d) => ICAL_DAYS[d]).join(',')}`,
+      `RRULE:FREQ=WEEKLY;BYDAY=${a.days.map((d) => ICAL_DAYS[d]).join(',')}${a.until ? `;UNTIL=${a.until.replace(/-/g, '')}T235959` : ''}`,
       `SUMMARY:${icsEscape(title)}`,
       `DESCRIPTION:${icsEscape(msg)}`,
       'TRANSP:TRANSPARENT',
@@ -829,7 +1034,7 @@ function download(file) {
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
 async function exportIcs(alarms) {
-  const list = alarms || state.alarms.filter((a) => a.enabled);
+  const list = (alarms || state.alarms.filter((a) => a.enabled)).filter((a) => nextOccurrence(a) || !a.until);
   if (!list.length) { toast('Keine aktiven Wecker'); return; }
   const file = icsFile(list);
   // Auf iPhone/iPad ist das Teilen-Menü der zuverlässigste Weg in den Kalender
@@ -999,6 +1204,7 @@ if (params.get('alarm')) {
   history.replaceState(null, '', location.pathname);
 }
 
+cleanupLoading();
 save();
 let startTab = 'today';
 try { startTab = localStorage.getItem(STORE_KEY + '.tab') || 'today'; } catch (e) { /* ignore */ }
