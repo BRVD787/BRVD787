@@ -1,7 +1,7 @@
 {
-  "name": "PushUp Wecker",
-  "short_name": "PushUp",
-  "description": "Eigene Pushup-Wecker, Trainings- und Kreatin-Erinnerungen",
+  "name": "Gym Wecker",
+  "short_name": "Gym Wecker",
+  "description": "Trainingsplan, Gym-Fortschritt, Trainings- und Kreatin-Erinnerungen",
   "lang": "de",
   "start_url": "./",
   "scope": "./",

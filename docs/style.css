@@ -128,31 +128,6 @@ h2 { font-size: 17px; font-weight: 600; margin: 0; }
 .hero-time { font-size: 64px; font-weight: 200; letter-spacing: -.04em; line-height: 1; margin-top: 10px; font-variant-numeric: tabular-nums; }
 .hero-sub { color: var(--muted); margin-top: 8px; font-size: 16px; }
 
-/* ---------- Aktivitätsring ---------- */
-.ring-card { border-radius: var(--r-xl); padding: 18px; display: flex; align-items: center; gap: 18px; }
-.ring-wrap { position: relative; width: 148px; height: 148px; flex: none; }
-.ring { width: 100%; height: 100%; transform: rotate(-90deg); }
-.ring circle { fill: none; stroke-width: 14; }
-.ring-track { stroke: var(--field); }
-.ring-progress {
-  stroke: url(#ringGrad); stroke-linecap: round;
-  stroke-dasharray: 314.16; stroke-dashoffset: 314.16;
-  transition: stroke-dashoffset .8s cubic-bezier(.2,.8,.2,1);
-  filter: drop-shadow(0 0 6px rgba(255,90,60,.45));
-}
-.ring-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-.ring-count { font-size: 40px; font-weight: 700; letter-spacing: -.03em; line-height: 1; font-variant-numeric: tabular-nums; }
-.ring-goal { font-size: 13px; color: var(--muted); margin-top: 4px; }
-.ring-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
-.chips { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.chip {
-  font: 600 17px var(--font); color: var(--text); background: var(--glass-strong); border: 1px solid var(--glass-border);
-  border-radius: 99px; min-height: 44px; cursor: pointer; box-shadow: inset 0 1px 0 var(--glass-hi);
-  transition: transform .15s, background .15s;
-}
-.chip:active { transform: scale(.94); background: var(--tint); color: var(--tint-text); }
-.chip-minus { background: transparent; color: var(--muted); }
-
 /* ---------- Kacheln Kreatin / Training ---------- */
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .tile {
@@ -314,15 +289,15 @@ dialog::backdrop { background: rgba(0,0,0,.35); -webkit-backdrop-filter: blur(6p
 }
 .time-input::-webkit-calendar-picker-indicator { filter: invert(.6); width: 22px; height: 22px; margin-left: 6px; }
 fieldset.days { border: 0; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 8px; }
-#dayPicker { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
-#dayPicker label { cursor: pointer; }
-#dayPicker input { position: absolute; opacity: 0; }
-#dayPicker span {
+.daychips { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.daychips label { cursor: pointer; }
+.daychips input { position: absolute; opacity: 0; }
+.daychips span {
   display: grid; place-items: center; aspect-ratio: 1; max-width: 100%; border-radius: 50%;
   font-size: 14px; font-weight: 600; background: var(--glass); border: 1px solid var(--glass-border); transition: .2s;
 }
-#dayPicker input:checked + span { background: var(--tint); color: var(--tint-text); border-color: transparent; box-shadow: 0 4px 14px -4px rgba(255,140,0,.8); }
-#dayPicker input:focus-visible + span { outline: 2px solid var(--tint); outline-offset: 2px; }
+.daychips input:checked + span { background: var(--tint); color: var(--tint-text); border-color: transparent; box-shadow: 0 4px 14px -4px rgba(255,140,0,.8); }
+.daychips input:focus-visible + span { outline: 2px solid var(--tint); outline-offset: 2px; }
 
 /* ---------- Klingeln ---------- */
 .ringing {
@@ -362,10 +337,93 @@ fieldset.days { border: 0; padding: 0; margin: 0; display: flex; flex-direction:
   .glass, .glass-pill { background: color-mix(in srgb, var(--bg) 82%, #888); }
 }
 @media (max-width: 380px) {
-  .ring-card { flex-direction: column; }
   .hero-time { font-size: 54px; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 .cell input.wide-in:not([type=checkbox]):not([type=range]) { width: 60%; }
+
+/* ---------- Training: Serie, Woche, Plan ---------- */
+.card-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.section-label.flat { padding: 0; }
+.pill {
+  font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 99px;
+  background: var(--glass-strong); border: 1px solid var(--glass-border); font-variant-numeric: tabular-nums;
+}
+.streak-row { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.streak-unit { font-size: 20px; font-weight: 600; letter-spacing: -.01em; }
+.streak-card .weekstrip { margin-top: 18px; }
+.weekstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.wd { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.wd-label { font-size: 12px; font-weight: 600; color: var(--muted); }
+.wd.today .wd-label { color: var(--tint); }
+.wd-dot {
+  width: 100%; max-width: 40px; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center;
+  background: var(--field); border: 2px solid transparent; transition: .25s;
+}
+.wd-dot svg { width: 60%; height: 60%; stroke-width: 3; color: #fff; opacity: 0; }
+.wd.planned .wd-dot { border-color: var(--tint); background: transparent; }
+.wd.missed .wd-dot { border-color: var(--faint); border-style: dashed; background: transparent; }
+.wd.done .wd-dot { background: var(--green); box-shadow: 0 0 14px rgba(48,209,88,.45); }
+.wd.done .wd-dot svg { opacity: 1; }
+.wd.today .wd-dot { outline: 2px solid var(--glass-border); outline-offset: 2px; }
+.btn.big { min-height: 54px; font-size: 17px; }
+.tiny { font-size: 13px; margin: 0; }
+.center { text-align: center; }
+.stepper { display: inline-flex; align-items: center; gap: 4px; background: var(--field); border-radius: 99px; padding: 3px; }
+.stepper button {
+  width: 36px; height: 32px; border-radius: 99px; border: 0; background: transparent; color: var(--text);
+  font: 600 20px var(--font); cursor: pointer; line-height: 1;
+}
+.stepper button:active { background: var(--glass-strong); }
+.stepper b { min-width: 22px; text-align: center; font-size: 17px; font-variant-numeric: tabular-nums; }
+
+/* ---------- Fortschritt ---------- */
+.progress-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.prog { border-radius: var(--r-lg); padding: 14px 16px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.prog-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.prog-name { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pr { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: #1c1000; background: #ffd60a; padding: 3px 8px; border-radius: 99px; flex: none; }
+.prog-body { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; }
+.prog-val b { font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.prog-val span { color: var(--muted); font-size: 15px; }
+.spark { width: 120px; height: 40px; flex: none; overflow: visible; }
+.spark-line { fill: none; stroke: var(--tint); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.spark-area { fill: var(--tint); stroke: none; opacity: .14; }
+.spark-end { fill: var(--tint); stroke: var(--bg); stroke-width: 2; }
+.prog-foot { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--muted); }
+.trend { font-weight: 600; font-variant-numeric: tabular-nums; }
+.trend.up { color: var(--green); }
+.trend.down { color: var(--red); }
+.empty-card p { margin: 0; }
+
+/* ---------- Trainingsliste ---------- */
+.cell-btn { width: 100%; font: inherit; color: var(--text); background: transparent; border: 0; text-align: left; cursor: pointer; justify-content: flex-start; }
+.cell-btn + .cell-btn { border-top: 1px solid var(--sep); }
+.cell-btn:active { background: var(--glass); }
+.cell-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.cell-text b { font-weight: 600; }
+.cell-text small { color: var(--muted); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.chev { color: var(--faint); flex: none; }
+.chev svg { width: 18px; height: 18px; }
+
+/* ---------- Übungen im Sheet ---------- */
+#workoutForm { display: flex; flex-direction: column; gap: 14px; }
+.ex-rows { display: flex; flex-direction: column; gap: 10px; }
+.ex-row { border-radius: var(--r-md); padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 8px; }
+.ex-top { display: flex; gap: 8px; align-items: center; }
+.ex-top input {
+  flex: 1; min-width: 0; font: 600 17px var(--font); color: var(--text); background: transparent; border: 0; padding: 6px 2px;
+}
+.ex-del { width: 32px; height: 32px; border-radius: 50%; border: 0; background: var(--field); color: var(--muted); display: grid; place-items: center; cursor: pointer; flex: none; }
+.ex-del svg { width: 14px; height: 14px; stroke-width: 2.6; }
+.ex-nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.ex-nums label { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ex-nums input {
+  width: 100%; text-align: center; font: 600 20px var(--font); color: var(--text); font-variant-numeric: tabular-nums;
+  background: var(--field); border: 0; border-radius: 10px; padding: 8px 4px;
+}
+.ex-nums span { font-size: 12px; color: var(--muted); }
+.ex-last { font-size: 13px; color: var(--tint); min-height: 0; }
+.ex-last:empty { display: none; }
