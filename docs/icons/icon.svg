@@ -1,86 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
-  <!-- Gym Wecker: Wecker aus Milchglas mit Hantel, über farbigem Verlauf (Liquid-Glass-Stil) -->
+  <!-- Gym Wecker: Stoppuhr mit Hantel, weiß auf Orange-Pink-Verlauf -->
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#1b1446"/>
-      <stop offset="0.55" stop-color="#0b0a24"/>
-      <stop offset="1" stop-color="#05040f"/>
+    <linearGradient id="bg" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#FFA526"/>
+      <stop offset="0.55" stop-color="#FF6A3D"/>
+      <stop offset="1" stop-color="#FF3B5C"/>
     </linearGradient>
-    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="110"/></filter>
-    <filter id="frost" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="38"/></filter>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="26"/><feOffset dy="28"/>
-      <feComponentTransfer><feFuncA type="linear" slope="0.55"/></feComponentTransfer>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity="0.22"/>
+      <stop offset="0.5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="glyph" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#FFF1EA"/>
+    </linearGradient>
+    <filter id="lift" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="16"/>
+      <feOffset dy="14"/>
+      <feComponentTransfer><feFuncA type="linear" slope="0.22"/></feComponentTransfer>
       <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
     </filter>
-    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="14" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity="0.95"/>
-      <stop offset="0.45" stop-color="#fff" stop-opacity="0.18"/>
-      <stop offset="1" stop-color="#fff" stop-opacity="0.45"/>
-    </linearGradient>
-    <linearGradient id="sheen" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0" stop-color="#fff" stop-opacity="0.55"/>
-      <stop offset="0.38" stop-color="#fff" stop-opacity="0.06"/>
-      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="bar" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="1" stop-color="#e9e6ff"/>
-    </linearGradient>
-    <clipPath id="face"><circle cx="512" cy="560" r="300"/></clipPath>
-    <clipPath id="bellL"><circle cx="300" cy="300" r="92"/></clipPath>
-    <clipPath id="bellR"><circle cx="724" cy="300" r="92"/></clipPath>
-    <g id="blobs">
-      <circle cx="230" cy="200" r="300" fill="#ff8a1a"/>
-      <circle cx="840" cy="300" r="280" fill="#ff2d6f"/>
-      <circle cx="420" cy="900" r="330" fill="#5b3cff"/>
-      <circle cx="880" cy="900" r="220" fill="#1aa3ff"/>
-    </g>
   </defs>
 
-  <!-- Hintergrund -->
   <rect width="1024" height="1024" fill="url(#bg)"/>
-  <g filter="url(#soft)" opacity="0.75"><use href="#blobs"/></g>
+  <rect width="1024" height="1024" fill="url(#gloss)"/>
 
-  <!-- Glocken -->
-  <g filter="url(#shadow)">
-    <g clip-path="url(#bellL)"><rect width="1024" height="1024" fill="#130f33"/><g filter="url(#frost)" opacity="0.95"><use href="#blobs"/></g><rect width="1024" height="1024" fill="#fff" opacity="0.16"/></g>
-    <circle cx="300" cy="300" r="92" fill="none" stroke="url(#rim)" stroke-width="7"/>
-    <g clip-path="url(#bellR)"><rect width="1024" height="1024" fill="#130f33"/><g filter="url(#frost)" opacity="0.95"><use href="#blobs"/></g><rect width="1024" height="1024" fill="#fff" opacity="0.16"/></g>
-    <circle cx="724" cy="300" r="92" fill="none" stroke="url(#rim)" stroke-width="7"/>
-  </g>
-
-  <!-- Gehäuse aus Milchglas -->
-  <g filter="url(#shadow)">
-    <g clip-path="url(#face)">
-      <rect width="1024" height="1024" fill="#120e30"/>
-      <g filter="url(#frost)"><use href="#blobs"/></g>
-      <rect width="1024" height="1024" fill="#fff" opacity="0.22"/>
-      <circle cx="512" cy="560" r="300" fill="none" stroke="#000" stroke-opacity="0.18" stroke-width="40" filter="url(#frost)"/>
-      <ellipse cx="450" cy="380" rx="300" ry="190" fill="url(#sheen)"/>
+  <g filter="url(#lift)" fill="url(#glyph)">
+    <!-- Krone der Stoppuhr -->
+    <rect x="462" y="168" width="100" height="56" rx="18"/>
+    <rect x="494" y="214" width="36" height="40" rx="8"/>
+    <!-- Ring -->
+    <circle cx="512" cy="566" r="292" fill="none" stroke="url(#glyph)" stroke-width="64"/>
+    <!-- Hantel -->
+    <g transform="translate(512 566) scale(0.9) translate(-512 -566)">
+      <rect x="362" y="538" width="300" height="56" rx="28"/>
+      <rect x="314" y="462" width="70" height="208" rx="28"/>
+      <rect x="640" y="462" width="70" height="208" rx="28"/>
+      <rect x="256" y="498" width="54" height="136" rx="24"/>
+      <rect x="714" y="498" width="54" height="136" rx="24"/>
     </g>
-    <circle cx="512" cy="560" r="300" fill="none" stroke="url(#rim)" stroke-width="12"/>
   </g>
-
-  <!-- Stundenmarken -->
-  <g fill="#fff" opacity="0.6">
-    <rect x="503" y="292" width="18" height="44" rx="9"/>
-    <rect x="503" y="784" width="18" height="44" rx="9"/>
-    <rect x="244" y="551" width="44" height="18" rx="9"/>
-    <rect x="736" y="551" width="44" height="18" rx="9"/>
-  </g>
-
-  <!-- Hantel als Zeiger -->
-  <g transform="rotate(-32 512 560)" filter="url(#glow)">
-    <rect x="340" y="532" width="344" height="56" rx="28" fill="url(#bar)"/>
-    <rect x="300" y="452" width="74" height="216" rx="32" fill="url(#bar)"/>
-    <rect x="240" y="490" width="56" height="140" rx="26" fill="url(#bar)"/>
-    <rect x="650" y="452" width="74" height="216" rx="32" fill="url(#bar)"/>
-    <rect x="728" y="490" width="56" height="140" rx="26" fill="url(#bar)"/>
-  </g>
-  <circle cx="512" cy="560" r="30" fill="#ff8a1a" stroke="#fff" stroke-width="10"/>
 </svg>

@@ -427,3 +427,50 @@ fieldset.days { border: 0; padding: 0; margin: 0; display: flex; flex-direction:
 .ex-nums span { font-size: 12px; color: var(--muted); }
 .ex-last { font-size: 13px; color: var(--tint); min-height: 0; }
 .ex-last:empty { display: none; }
+
+/* ---------- Segment-Schalter ---------- */
+.segmented { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 2px; padding: 3px; border-radius: 12px; background: var(--field); }
+.segmented label { cursor: pointer; }
+.segmented input { position: absolute; opacity: 0; }
+.segmented span { display: block; text-align: center; padding: 8px 10px; border-radius: 9px; font-size: 15px; font-weight: 600; color: var(--muted); transition: .2s; white-space: nowrap; }
+.segmented input:checked + span { background: var(--glass-strong); color: var(--text); box-shadow: 0 2px 8px rgba(0,0,0,.18), inset 0 1px 0 var(--glass-hi); }
+.segmented input:focus-visible + span { outline: 2px solid var(--tint); outline-offset: 1px; }
+.segmented.small span { padding: 5px 10px; font-size: 14px; }
+
+/* ---------- Kreatin-Rechner ---------- */
+#calcForm { display: flex; flex-direction: column; gap: 14px; }
+.calc-result { display: flex; flex-direction: column; gap: 12px; }
+.calc-result .card p { margin: 0; }
+.calc-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.calc-stat { border-radius: var(--r-md); padding: 14px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.calc-stat.wide { grid-column: 1 / -1; }
+.calc-stat small { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--tint); }
+.calc-stat b { font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.calc-stat span { font-size: 13px; color: var(--muted); }
+.plan-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+.plan-row + .plan-row { border-top: 1px solid var(--sep); }
+.plan-day { display: flex; flex-direction: column; font-weight: 600; font-size: 15px; min-width: 76px; }
+.plan-day small { font-weight: 400; color: var(--muted); font-size: 12px; }
+.plan-doses { flex: 1; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; min-width: 0; }
+.plan-doses span { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.plan-doses b { font-size: 14px; color: var(--text); }
+.plan-row.after .plan-doses { grid-template-columns: 1fr; justify-items: start; }
+.plan-row.after .plan-doses span { flex-direction: row; gap: 8px; align-items: baseline; }
+.plan-row.after { background: color-mix(in srgb, var(--green) 10%, transparent); }
+
+/* ---------- Ladephase auf „Heute“ ---------- */
+.load-card p { margin: 0; }
+.load-segs { display: flex; gap: 4px; }
+.load-segs i { flex: 1; height: 6px; border-radius: 3px; background: var(--field); }
+.load-segs i.past { background: var(--green); }
+.load-segs i.now { background: var(--tint); }
+.doses { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.dose {
+  display: flex; flex-direction: column; align-items: center; padding: 8px 4px; border-radius: 12px;
+  background: var(--field); border: 1px solid transparent; font-variant-numeric: tabular-nums; transition: .25s;
+}
+.dose b { font-size: 15px; }
+.dose small { font-size: 12px; color: var(--muted); }
+.dose.on { background: color-mix(in srgb, var(--green) 22%, transparent); border-color: var(--green); }
+.calc-hint { width: 100%; font: inherit; color: var(--text); text-align: left; cursor: pointer; flex-direction: row; align-items: center; gap: 14px; }
+.calc-hint .cell-text small { white-space: normal; }

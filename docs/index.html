@@ -56,6 +56,8 @@
         </button>
       </div>
 
+      <div id="creatineCard"></div>
+
       <div class="glass card">
         <div class="card-row">
           <span class="section-label flat">Diese Woche</span>
@@ -158,6 +160,11 @@
           <span class="cell-label"><span class="squircle mint small"><svg viewBox="0 0 24 24"><rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="m8.5 8.5 7 7"/></svg></span>Dosis pro Tag (g)</span>
           <input id="setDose" type="number" min="1" max="30" step="0.5" inputmode="decimal">
         </label>
+        <button type="button" id="openCalc" class="cell cell-btn">
+          <span class="squircle orange small"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M8.5 7h7M8.5 11h.01M12 11h.01M15.5 11h.01M8.5 14.5h.01M12 14.5h.01M15.5 14.5h.01M8.5 18h.01M12 18h3.5"/></svg></span>
+          <span class="cell-text"><b>Kreatin-Rechner</b><small>Dosis und Ladephase berechnen</small></span>
+          <span class="chev"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></span>
+        </button>
       </div>
 
       <div class="section-label">Wecker</div>
@@ -301,6 +308,57 @@
     </form>
   </dialog>
   <datalist id="exNames"></datalist>
+
+  <!-- Kreatin-Rechner -->
+  <dialog id="calcDialog" class="sheet">
+    <form id="calcForm" method="dialog">
+      <div class="sheet-grabber" aria-hidden="true"></div>
+      <div class="sheet-head">
+        <button value="cancel" formnovalidate class="link">Abbrechen</button>
+        <h2>Kreatin-Rechner</h2>
+        <button value="save" class="link strong">Übernehmen</button>
+      </div>
+
+      <div class="glass group">
+        <label class="cell">
+          <span class="cell-label">Körpergewicht (kg)</span>
+          <input name="kg" type="number" min="35" max="250" step="0.5" inputmode="decimal" required placeholder="80">
+        </label>
+      </div>
+
+      <div class="segmented" role="radiogroup" aria-label="Ladephase">
+        <label><input type="radio" name="load" value="yes" checked><span>Mit Ladephase</span></label>
+        <label><input type="radio" name="load" value="no"><span>Ohne Ladephase</span></label>
+      </div>
+
+      <div class="glass group loadOnly">
+        <div class="cell">
+          <span class="cell-label">Dauer</span>
+          <div class="segmented small" role="radiogroup" aria-label="Dauer der Ladephase">
+            <label><input type="radio" name="days" value="5" checked><span>5 Tage</span></label>
+            <label><input type="radio" name="days" value="6"><span>6</span></label>
+            <label><input type="radio" name="days" value="7"><span>7</span></label>
+          </div>
+        </div>
+        <label class="cell">
+          <span class="cell-label">Start</span>
+          <input name="start" type="date" class="wide-in">
+        </label>
+        <label class="cell">
+          <span class="cell-label">Wecker für jede Einnahme</span>
+          <span class="switch"><input name="alarms" type="checkbox" checked><span></span></span>
+        </label>
+      </div>
+
+      <div id="calcResult" class="calc-result"></div>
+
+      <p class="muted tiny">Richtwerte nach der International Society of Sports Nutrition: Ladephase 0,3 g pro kg
+        Körpergewicht und Tag auf 4 Portionen verteilt, danach 0,03 g pro kg (mindestens 3 g). Kreatin-Monohydrat
+        mit ausreichend Wasser nehmen. Bei Nierenerkrankungen oder Medikamenten vorher ärztlich abklären.</p>
+
+      <button type="button" id="endLoading" class="btn danger wide hidden">Ladephase beenden</button>
+    </form>
+  </dialog>
 
   <!-- Wecker klingelt -->
   <div id="ringing" class="ringing hidden" role="alertdialog" aria-live="assertive">
