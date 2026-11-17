@@ -5,12 +5,19 @@ const STORE_KEY = 'pushupWecker.v1';
 const DAY_LABELS = ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'];
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]; // Mo..So
 const ICAL_DAYS = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+const SVG = (d) => `<svg viewBox="0 0 24 24" aria-hidden="true">${d}</svg>`;
 const TYPES = {
-  pushups:  { icon: '💪', label: 'Pushups' },
-  training: { icon: '🏋️', label: 'Training' },
-  creatine: { icon: '💊', label: 'Kreatin' },
-  custom:   { icon: '🔔', label: 'Eigener' },
+  pushups:  { icon: '💪', label: 'Pushups', color: 'orange',
+    svg: SVG('<path d="M12 3c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2.5 1.5-3.5 2-5.5.8 1.2 1.5 1.8 2.5 2C12 7 12 5 12 3z"/>') },
+  training: { icon: '🏋️', label: 'Training', color: 'indigo',
+    svg: SVG('<path d="M6 7v10M3 9.5v5M18 7v10M21 9.5v5M6 12h12"/>') },
+  creatine: { icon: '💊', label: 'Kreatin', color: 'mint',
+    svg: SVG('<rect x="3" y="8.5" width="18" height="7" rx="3.5" transform="rotate(-45 12 12)"/><path d="m8.5 8.5 7 7"/>') },
+  custom:   { icon: '🔔', label: 'Eigener', color: 'pink',
+    svg: SVG('<path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20.5a2 2 0 0 0 4 0"/>') },
 };
+const TAB_TITLES = { today: 'Heute', alarms: 'Wecker', history: 'Verlauf', settings: 'Optionen' };
+const RING_LEN = 2 * Math.PI * 50;
 const CATCH_UP_MIN = 10; // verpasste Wecker bis zu 10 Min. nachholen (z. B. Tab war gedrosselt)
 
 const EMBEDDED = (() => { try { return window.self !== window.top; } catch (e) { return true; } })();
@@ -239,10 +246,11 @@ function checkAlarms() {
 function ring(alarm, { silentNotify = false } = {}) {
   ringingAlarm = alarm;
   const t = TYPES[alarm.type] || TYPES.custom;
-  $('#ringIcon').textContent = t.icon;
+  $('#ringIcon').innerHTML = t.svg;
+  $('#ringTime').textContent = hm(new Date());
   $('#ringTitle').textContent = alarm.name;
   $('#ringMsg').textContent = alarmMessage(alarm);
-  $('#ringDone').textContent = alarm.type === 'pushups' ? `${alarm.reps || 0} gemacht ✔` : 'Erledigt ✔';
+  $('#ringDone').textContent = alarm.type === 'pushups' ? `${alarm.reps || 0} geschafft` : 'Erledigt';
   $('#ringSnooze').textContent = `Snooze ${state.settings.snooze} Min`;
   $('#ringing').classList.remove('hidden');
   startSound(alarm.sound);
@@ -268,7 +276,7 @@ function completeAlarm(alarm) {
   save();
   closeRing();
   renderToday();
-  toast(alarm.type === 'pushups' ? `Stark! +${alarm.reps} Pushups 💪` : 'Erledigt ✔');
+  toast(alarm.type === 'pushups' ? `Stark! +${alarm.reps} Pushups` : 'Erledigt');
 }
 
 function snooze(alarm) {
@@ -288,20 +296,20 @@ function renderToday() {
   const t = today();
   const goal = state.settings.goal;
   $('#pushupCount').textContent = t.pushups;
-  $('#pushupGoalLabel').textContent = `Ziel ${goal}`;
-  $('#pushupBar').style.width = Math.min(100, (t.pushups / goal) * 100) + '%';
+  $('#pushupGoalLabel').textContent = t.pushups >= goal ? 'Ziel erreicht' : `von ${goal}`;
+  $('#ringProgress').style.strokeDashoffset = RING_LEN * (1 - Math.min(1, t.pushups / goal));
+  $('#ringProgress').style.opacity = t.pushups > 0 ? 1 : 0;
 
-  const cb = $('#creatineBtn');
-  cb.classList.toggle('done', t.creatine);
-  cb.textContent = t.creatine ? `✔ ${state.settings.dose} g Kreatin genommen` : `${state.settings.dose} g Kreatin genommen?`;
+  const dose = state.settings.dose;
+  $('#creatineBtn').classList.toggle('done', t.creatine);
+  $('#creatineState').textContent = t.creatine ? `${dose} g genommen` : `${dose} g noch offen`;
   const cs = streak('creatine');
-  $('#creatineStreak').textContent = cs ? `🔥 ${cs} Tage in Folge` : '';
+  $('#creatineStreak').textContent = cs ? `${cs} ${cs === 1 ? 'Tag' : 'Tage'} in Folge` : '';
 
-  const tb = $('#trainingBtn');
-  tb.classList.toggle('done', t.training);
-  tb.textContent = t.training ? '✔ Training erledigt' : 'Training erledigt?';
+  $('#trainingBtn').classList.toggle('done', t.training);
+  $('#trainingState').textContent = t.training ? 'Erledigt' : 'Noch offen';
   const ts = streak('training');
-  $('#trainingStreak').textContent = ts ? `🔥 ${ts} Tage in Folge` : '';
+  $('#trainingStreak').textContent = ts ? `${ts} ${ts === 1 ? 'Tag' : 'Tage'} in Folge` : '';
 
   const next = state.alarms
     .filter((a) => a.enabled)
@@ -313,8 +321,10 @@ function renderToday() {
     const day = isToday ? 'Heute' : DAY_LABELS[next.at.getDay()];
     const mins = Math.round((next.at - new Date()) / 60000);
     const rel = mins < 60 ? `in ${mins} Min` : `in ${Math.floor(mins / 60)} h ${mins % 60} Min`;
-    $('#nextAlarm').textContent = `${TYPES[next.a.type].icon} ${day} ${next.a.time} · ${next.a.name} (${rel})`;
+    $('#nextTime').textContent = next.a.time;
+    $('#nextAlarm').textContent = `${day} · ${next.a.name} · ${rel}`;
   } else {
+    $('#nextTime').textContent = '–';
     $('#nextAlarm').textContent = 'Kein Wecker aktiv';
   }
 }
@@ -334,15 +344,15 @@ function renderAlarms() {
   const sorted = [...state.alarms].sort((a, b) => a.time.localeCompare(b.time));
   for (const a of sorted) {
     const li = document.createElement('li');
-    li.className = 'alarm' + (a.enabled ? '' : ' off');
+    li.className = 'alarm glass' + (a.enabled ? '' : ' off');
     const t = TYPES[a.type] || TYPES.custom;
     li.innerHTML = `
-      <div class="icon">${t.icon}</div>
+      <span class="squircle ${t.color}">${t.svg}</span>
       <div class="info">
         <div class="time"></div>
         <div class="meta"></div>
       </div>
-      <button class="icsBtn ghost" title="Diesen Wecker in den Kalender">📅</button>
+      <button class="icsBtn" title="Diesen Wecker in den Kalender" aria-label="In Kalender">${SVG('<rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>')}</button>
       <label class="switch"><input type="checkbox"><span></span></label>`;
     li.querySelector('.time').textContent = a.time;
     li.querySelector('.meta').textContent =
@@ -354,7 +364,7 @@ function renderAlarms() {
     sw.onchange = () => { a.enabled = sw.checked; save(); renderAlarms(); renderToday(); };
     list.appendChild(li);
   }
-  if (!sorted.length) list.innerHTML = '<li class="muted center">Noch keine Wecker – tippe auf „+ Neu“.</li>';
+  if (!sorted.length) list.innerHTML = '<li class="empty">Noch keine Wecker. Tippe auf „Neu“.</li>';
 }
 
 // Tage-Auswahl aufbauen
@@ -527,14 +537,14 @@ function renderHistory() {
     sum += e.pushups; creat += e.creatine ? 1 : 0; train += e.training ? 1 : 0;
     const tr = document.createElement('tr');
     const label = i === 0 ? 'Heute' : i === 1 ? 'Gestern' : `${DAY_LABELS[d.getDay()]} ${d.getDate()}.${d.getMonth() + 1}.`;
-    tr.innerHTML = `<td>${label}</td><td>${e.pushups || '–'}</td><td>${e.creatine ? '✅' : '·'}</td><td>${e.training ? '✅' : '·'}</td>`;
+    tr.innerHTML = `<td>${label}</td><td>${e.pushups || '–'}</td><td><span class="dot${e.creatine ? ' on' : ''}"></span></td><td><span class="dot${e.training ? ' on' : ''}"></span></td>`;
     body.appendChild(tr);
   }
   const allTime = Object.values(state.log).reduce((s, e) => s + (e.pushups || 0), 0);
   $('#stats').innerHTML = `
-    <div class="stat"><b>${sum}</b><small>Pushups (14 T.)</small></div>
-    <div class="stat"><b>${creat}/14</b><small>Kreatin-Tage</small></div>
-    <div class="stat"><b>${allTime}</b><small>Pushups gesamt</small></div>`;
+    <div class="stat glass"><b>${sum}</b><small>Pushups 14 Tage</small></div>
+    <div class="stat glass"><b>${creat}/14</b><small>Kreatin-Tage</small></div>
+    <div class="stat glass"><b>${allTime}</b><small>Pushups gesamt</small></div>`;
 }
 
 /* ---------------- Ansicht: Einstellungen ---------------- */
@@ -552,10 +562,10 @@ function renderSettings() {
       : 'Dieser Browser unterstützt keine Mitteilungen. Wecker klingeln trotzdem, solange die App offen ist.';
     $('#askNotif').classList.add('hidden');
   } else if (Notification.permission === 'granted') {
-    txt = '✅ Mitteilungen sind erlaubt. Die App weckt dich, solange sie geöffnet ist bzw. im Hintergrund läuft. Für geschlossene App: Kalender-Export nutzen.';
+    txt = 'Mitteilungen sind erlaubt. Die App weckt dich, solange sie geöffnet ist bzw. im Hintergrund läuft. Für geschlossene App: Kalender-Export nutzen.';
     $('#askNotif').classList.add('hidden');
   } else if (Notification.permission === 'denied') {
-    txt = '❌ Mitteilungen wurden blockiert. Bitte in den System-/Browser-Einstellungen erlauben.';
+    txt = 'Mitteilungen wurden blockiert. Bitte in den System-/Browser-Einstellungen erlauben.';
     $('#askNotif').classList.add('hidden');
   } else {
     txt = 'Erlaube Mitteilungen, damit der Wecker auch auftaucht, wenn du in einem anderen Fenster bist.';
@@ -642,27 +652,33 @@ let installEvent = null;
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault(); installEvent = e;
   const h = $('#installHint');
-  h.innerHTML = '<b>Als App installieren</b><p class="muted small">Installiere den PushUp Wecker auf deinem PC – dann läuft er in einem eigenen Fenster und startet mit einem Klick.</p><button class="primary" id="installBtn">Installieren</button>';
+  h.innerHTML = '<b>Als App installieren</b><p class="muted small">Installiere den PushUp Wecker auf deinem PC – dann läuft er in einem eigenen Fenster und startet mit einem Klick.</p><button class="btn tinted" id="installBtn">Installieren</button>';
   h.classList.remove('hidden');
   $('#installBtn').onclick = async () => { installEvent.prompt(); await installEvent.userChoice; h.classList.add('hidden'); };
 });
 if (isIOS() && !isStandalone() && !EMBEDDED) {
   const h = $('#installHint');
-  h.innerHTML = '<b>📲 Auf den Home-Bildschirm</b><p class="muted small">Tippe unten in Safari auf <b>Teilen</b> (□↑) → <b>Zum Home-Bildschirm</b>. Erst dann kann die App dir Mitteilungen schicken.</p>';
+  h.innerHTML = '<b>Auf den Home-Bildschirm</b><p class="muted small">Tippe unten in Safari auf <b>Teilen</b> (□↑) → <b>Zum Home-Bildschirm</b>. Erst dann kann die App dir Mitteilungen schicken.</p>';
   h.classList.remove('hidden');
 }
 
 /* ---------------- Tabs & Start ---------------- */
-$$('.tabs button').forEach((b) => b.addEventListener('click', () => {
-  $$('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
+$$('.tabbar button').forEach((b) => b.addEventListener('click', () => {
+  $$('.tabbar button').forEach((x) => x.classList.toggle('active', x === b));
   $$('.tab').forEach((t) => t.classList.toggle('active', t.id === 'tab-' + b.dataset.tab));
+  $('#pageTitle').textContent = TAB_TITLES[b.dataset.tab];
   renderAll();
   try { localStorage.setItem(STORE_KEY + '.tab', b.dataset.tab); } catch (e) { /* ignore */ }
 }));
 
 function renderAll() { renderToday(); renderAlarms(); renderHistory(); renderSettings(); }
 
-function tickClock() { $('#clock').textContent = hm(new Date()); }
+function tickClock() {
+  const d = new Date();
+  $('#clock').textContent = hm(d);
+  $('#dateLabel').textContent = d.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+  if (ringingAlarm) $('#ringTime').textContent = hm(d);
+}
 
 // Alte Log-Einträge (> 1 Jahr) aufräumen
 (function prune() {
@@ -672,7 +688,7 @@ function tickClock() { $('#clock').textContent = hm(new Date()); }
 
 try {
   const lastTab = localStorage.getItem(STORE_KEY + '.tab');
-  if (lastTab) $(`.tabs button[data-tab="${lastTab}"]`)?.click();
+  if (lastTab) $(`.tabbar button[data-tab="${lastTab}"]`)?.click();
 } catch (e) { /* ignore */ }
 
 // Klick auf Mitteilung öffnet App mit ?alarm=ID

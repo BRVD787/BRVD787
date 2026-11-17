@@ -1,5 +1,5 @@
 /* Service Worker: Offline-Cache + Klick auf Mitteilungen */
-const CACHE = 'pushup-wecker-v1';
+const CACHE = 'pushup-wecker-v2';
 const ASSETS = ['./', 'index.html', 'style.css', 'app.js', 'manifest.webmanifest',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png'];
 
